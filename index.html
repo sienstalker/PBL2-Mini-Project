@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N-Queens + Knight's Tour — MIT-WPU DSA</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f1117;
+    --surface:   #181b24;
+    --panel:     #1e2130;
+    --border:    #2d3148;
+    --gold:      #c9a84c;
+    --gold-dim:  #7a6230;
+    --text:      #e8e4d8;
+    --muted:     #6b7080;
+    --sq-light:  #c8aa6e;
+    --sq-dark:   #4a3220;
+    --sq-queen:  #d4a017;
+    --sq-atk:    rgba(200,40,40,0.22);
+    --green:     #5acea0;
+    --blue:      #5ab4ce;
+    --knight:    #7c5cbf;
+    --knight-hi: #b08aff;
+    --mono:      'Courier New', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Georgia, 'Times New Roman', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    background: var(--gold); color: #000;
+    font-family: Georgia, serif; font-weight: bold;
+    font-size: 12px; padding: 4px 8px;
+    border-radius: 3px; letter-spacing: 1px;
+  }
+  .logo h1 { font-size: 18px; font-weight: normal; letter-spacing: 0.5px; }
+  .logo h1 span { color: var(--gold); }
+  .header-tag {
+    font-family: var(--mono); font-size: 11px; color: var(--gold);
+    background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3);
+    padding: 4px 12px; border-radius: 20px;
+  }
+
+  /* ── Mode tabs ── */
+  .mode-tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    gap: 4px;
+  }
+  .mode-tab {
+    padding: 10px 22px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    letter-spacing: 0.5px;
+  }
+  .mode-tab:hover { color: var(--text); }
+  .mode-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .mode-tab.knight-tab.active { color: var(--knight-hi); border-bottom-color: var(--knight-hi); }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ── Sidebar ── */
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .section-title {
+    font-family: var(--mono); font-size: 10px; color: var(--gold);
+    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;
+  }
+  .section-title.knight { color: var(--knight-hi); }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+  }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 10px 8px; text-align: center;
+  }
+  .stat-n { font-family: var(--mono); font-size: 20px; color: var(--gold); display: block; }
+  .stat-n.knight { color: var(--knight-hi); }
+  .stat-l { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .sol-list {
+    max-height: 300px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .sol-list::-webkit-scrollbar { width: 4px; }
+  .sol-list::-webkit-scrollbar-track { background: var(--bg); }
+  .sol-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sol-item {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 8px 10px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sol-item:hover { border-color: var(--gold-dim); background: var(--panel); }
+  .sol-item.active { border-color: var(--gold); background: rgba(201,168,76,0.07); color: var(--text); }
+  .sol-item.knight-item:hover { border-color: var(--knight); }
+  .sol-item.knight-item.active { border-color: var(--knight-hi); background: rgba(124,92,191,0.1); }
+
+  .sol-num { color: var(--gold); min-width: 28px; }
+  .sol-num.knight { color: var(--knight-hi); }
+  .sol-squares { color: var(--muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tour-badge {
+    font-size: 9px; padding: 1px 5px; border-radius: 3px;
+    font-family: var(--mono); text-transform: uppercase; flex-shrink: 0;
+  }
+  .tour-badge.closed { background: rgba(90,206,160,0.15); color: var(--green); border: 1px solid rgba(90,206,160,0.3); }
+  .tour-badge.open   { background: rgba(90,180,206,0.12); color: var(--blue);  border: 1px solid rgba(90,180,206,0.25); }
+
+  .search-box {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 8px 10px; color: var(--text);
+    font-family: var(--mono); font-size: 12px; outline: none; margin-bottom: 8px;
+  }
+  .search-box:focus { border-color: var(--gold-dim); }
+  .search-box::placeholder { color: var(--muted); }
+
+  .nav-row { display: flex; gap: 8px; margin-top: 8px; }
+  .nav-btn {
+    flex: 1; background: var(--panel); border: 1px solid var(--border);
+    color: var(--text); border-radius: 5px; padding: 8px; cursor: pointer;
+    font-family: var(--mono); font-size: 12px; transition: border-color 0.15s;
+  }
+  .nav-btn:hover { border-color: var(--gold); }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+  .toggle-label { font-size: 12px; color: var(--muted); }
+  .toggle { position: relative; width: 34px; height: 18px; }
+  .toggle input { display: none; }
+  .t-track {
+    position: absolute; inset: 0; background: var(--border);
+    border-radius: 9px; cursor: pointer; transition: background 0.2s;
+  }
+  .t-track::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; background: #fff;
+    border-radius: 50%; transition: transform 0.2s;
+  }
+  .toggle input:checked + .t-track { background: var(--gold); }
+  .toggle input:checked + .t-track::after { transform: translateX(16px); }
+
+  /* Knight animate toggle */
+  .toggle input:checked + .t-track.knight-track { background: var(--knight); }
+
+  /* ── Board area ── */
+  .board-area {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 28px; gap: 18px;
+    background: radial-gradient(ellipse at 55% 45%, rgba(201,168,76,0.04) 0%, transparent 55%);
+  }
+  .board-area.knight-mode {
+    background: radial-gradient(ellipse at 55% 45%, rgba(124,92,191,0.05) 0%, transparent 55%);
+  }
+
+  .state-box {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 28px 36px; text-align: center; max-width: 500px;
+  }
+  .state-box h2 { font-size: 17px; color: var(--gold); margin-bottom: 10px; font-weight: normal; }
+  .state-box h2.knight { color: var(--knight-hi); }
+  .state-box p  { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .state-box code {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 3px;
+    padding: 10px 14px; display: block; margin: 12px 0;
+    font-family: var(--mono); font-size: 12px; color: var(--green); text-align: left;
+  }
+
+  /* ── Chessboard ── */
+  .board-wrap { display: flex; flex-direction: column; align-items: center; }
+  .col-labels { display: flex; padding-left: 26px; }
+  .col-lbl, .row-lbl {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .board-row-wrap { display: flex; align-items: center; }
+
+  #board, #knightBoard {
+    display: grid;
+    border: 2px solid var(--gold);
+    border-radius: 3px; overflow: hidden;
+    box-shadow: 0 0 40px rgba(201,168,76,0.12), 0 16px 48px rgba(0,0,0,0.6);
+  }
+  #knightBoard { border-color: var(--knight); box-shadow: 0 0 40px rgba(124,92,191,0.18), 0 16px 48px rgba(0,0,0,0.6); }
+
+  .sq {
+    position: relative; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .sq.light { background: var(--sq-light); }
+  .sq.dark  { background: var(--sq-dark); }
+  .sq.queen-sq { background: var(--sq-queen) !important; }
+  .sq.atk   { background: var(--sq-atk) !important; }
+
+  /* Knight tour square styling */
+  .sq.kt-visited {
+    background: rgba(124,92,191,0.18) !important;
+  }
+  .sq.kt-start {
+    background: rgba(176,138,255,0.45) !important;
+  }
+  .sq.kt-current {
+    background: rgba(90,206,160,0.5) !important;
+    box-shadow: inset 0 0 6px rgba(90,206,160,0.6);
+  }
+  .sq.kt-next {
+    background: rgba(90,206,160,0.18) !important;
+  }
+
+  /* Move number label inside knight squares */
+  .kt-num {
+    font-family: var(--mono);
+    font-weight: bold;
+    color: var(--text);
+    pointer-events: none;
+    line-height: 1;
+  }
+  .kt-arrow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* Queen SVG */
+  .queen {
+    width: 70%; height: 70%; pointer-events: none;
+    animation: drop 0.22s ease-out;
+  }
+  @keyframes drop {
+    from { transform: scale(0.7) translateY(-6px); opacity: 0; }
+    to   { transform: scale(1)   translateY(0);    opacity: 1; }
+  }
+
+  /* Knight SVG */
+  .knight-piece {
+    width: 68%; height: 68%; pointer-events: none;
+    animation: drop 0.22s ease-out;
+  }
+
+  /* Info bar */
+  .info-bar {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 16px;
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    max-width: 620px; width: 100%; flex-wrap: wrap;
+  }
+  .info-bar .sol-id   { color: var(--gold); font-size: 14px; }
+  .info-bar .kt-id    { color: var(--knight-hi); font-size: 14px; }
+  .info-bar .squares-val { color: var(--text); font-size: 11px; word-break: break-all; }
+
+  /* Knight animation controls */
+  .anim-row {
+    display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap;
+  }
+  .anim-btn {
+    background: var(--panel); border: 1px solid var(--knight);
+    color: var(--knight-hi); border-radius: 5px; padding: 6px 14px;
+    cursor: pointer; font-family: var(--mono); font-size: 11px;
+    transition: background 0.15s;
+  }
+  .anim-btn:hover { background: rgba(124,92,191,0.2); }
+  .anim-btn:disabled { opacity: 0.3; cursor: default; }
+  .anim-step {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+  }
+  .speed-label { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  input[type=range].speed-slider {
+    accent-color: var(--knight); width: 80px;
+  }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">MIT-WPU</div>
+    <h1>Backtracking <span>Visualiser</span></h1>
+  </div>
+  <div class="header-tag">Unit 4 · Backtracking</div>
+</header>
+
+<!-- Mode tabs -->
+<div class="mode-tabs">
+  <button class="mode-tab active"       id="tabQueens" onclick="switchMode('queens')">♛ N-Queens</button>
+  <button class="mode-tab knight-tab"   id="tabKnight" onclick="switchMode('knight')">♞ Knight's Tour</button>
+</div>
+
+<div class="layout">
+
+  <!-- ══════════════════════════════════════════════════════════════
+       N-QUEENS SIDEBAR
+  ══════════════════════════════════════════════════════════════ -->
+  <aside id="queensSidebar" style="display:none">
+
+    <div class="card">
+      <div class="section-title">Board Info</div>
+      <div class="stats">
+        <div class="stat"><span class="stat-n" id="st-sol">—</span><div class="stat-l">Solutions</div></div>
+        <div class="stat"><span class="stat-n" id="st-q">—</span><div class="stat-l">Queens</div></div>
+        <div class="stat"><span class="stat-n" id="st-time">—</span><div class="stat-l">Time (ms)</div></div>
+        <div class="stat"><span class="stat-n" id="st-calls">—</span><div class="stat-l">Rec. calls</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Solutions</div>
+      <input class="search-box" id="searchBox" placeholder="Search squares, e.g. a1 b5..." oninput="filterList()">
+      <div class="sol-list" id="solList"></div>
+      <div class="nav-row">
+        <button class="nav-btn" id="prevBtn" onclick="navigate(-1)" disabled>◀ Prev</button>
+        <button class="nav-btn" id="nextBtn" onclick="navigate(+1)">Next ▶</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Display</div>
+      <div class="toggle-row">
+        <span class="toggle-label">Show attacked squares</span>
+        <label class="toggle">
+          <input type="checkbox" id="atkToggle" checked onchange="redraw()">
+          <div class="t-track"></div>
+        </label>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       KNIGHT'S TOUR SIDEBAR
+  ══════════════════════════════════════════════════════════════ -->
+  <aside id="knightSidebar" style="display:none">
+
+    <div class="card">
+      <div class="section-title knight">Tour Stats</div>
+      <div class="stats">
+        <div class="stat"><span class="stat-n knight" id="kt-total">—</span><div class="stat-l">Tours</div></div>
+        <div class="stat"><span class="stat-n knight" id="kt-closed">—</span><div class="stat-l">Closed</div></div>
+        <div class="stat"><span class="stat-n" id="kt-time">—</span><div class="stat-l">Time (ms)</div></div>
+        <div class="stat"><span class="stat-n" id="kt-calls">—</span><div class="stat-l">Rec. calls</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title knight">Tours</div>
+      <input class="search-box" id="ktSearchBox" placeholder="Search start square, e.g. e4..." oninput="filterKnightList()">
+      <div class="sol-list" id="ktList"></div>
+      <div class="nav-row">
+        <button class="nav-btn" id="ktPrevBtn" onclick="navigateKnight(-1)" disabled>◀ Prev</button>
+        <button class="nav-btn" id="ktNextBtn" onclick="navigateKnight(+1)">Next ▶</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title knight">Animation</div>
+      <div class="anim-row">
+        <button class="anim-btn" id="animPlayBtn"  onclick="animPlay()">▶ Play</button>
+        <button class="anim-btn" id="animPauseBtn" onclick="animPause()" disabled>⏸ Pause</button>
+        <button class="anim-btn" onclick="animReset()">↺ Reset</button>
+      </div>
+      <div class="anim-row" style="margin-top:8px">
+        <span class="speed-label">Speed:</span>
+        <input type="range" class="speed-slider" id="speedSlider" min="1" max="10" value="5">
+        <span class="anim-step" id="animStep">Move 1 / —</span>
+      </div>
+      <div class="toggle-row" style="margin-top:10px">
+        <span class="toggle-label">Show move numbers</span>
+        <label class="toggle">
+          <input type="checkbox" id="showNums" checked onchange="redrawKnight()">
+          <div class="t-track knight-track"></div>
+        </label>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       MAIN BOARD AREA
+  ══════════════════════════════════════════════════════════════ -->
+  <main class="board-area" id="mainArea">
+
+    <!-- N-Queens view -->
+    <div id="queensView">
+      <div class="state-box" id="loadBox">
+        <h2>No data loaded</h2>
+        <p>Run the C++ solver to generate <strong>solutions.json</strong>, then serve this folder:</p>
+        <code>g++ -O2 -std=c++17 -o nqueens nqueens.cpp
+./nqueens 8 8 92</code>
+        <code>python3 -m http.server 8080
+# visit http://localhost:8080</code>
+      </div>
+      <div id="boardContainer" style="display:none">
+        <div class="board-wrap">
+          <div class="col-labels" id="colLabelsTop"></div>
+          <div class="board-row-wrap">
+            <div style="display:flex;flex-direction:column;justify-content:space-around;padding-right:6px" id="rowLabelsL"></div>
+            <div id="board"></div>
+            <div style="display:flex;flex-direction:column;justify-content:space-around;padding-left:6px" id="rowLabelsR"></div>
+          </div>
+          <div class="col-labels" id="colLabelsBot"></div>
+        </div>
+        <div class="info-bar" id="infoBar" style="margin-top:14px">
+          <span class="sol-id" id="infoId">—</span>
+          <span class="squares-val" id="infoSq">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Knight's Tour view -->
+    <div id="knightView" style="display:none">
+      <div class="state-box" id="ktLoadBox">
+        <h2 class="knight">No knight tour data</h2>
+        <p>Run the C++ solver in knight mode to generate <strong>knight_tour.json</strong>:</p>
+        <code>./nqueens knight 6 6</code>
+        <p style="margin-top:8px">Then serve this folder and reload:</p>
+        <code>python3 -m http.server 8080</code>
+        <p style="margin-top:8px;font-size:11px;color:var(--muted)">
+          Note: Pure backtracking on 8×8 can be slow — use 5×5 or 6×6 for quick demos.
+        </p>
+      </div>
+      <div id="ktBoardContainer" style="display:none">
+        <div class="board-wrap" id="ktBoardWrap">
+          <div class="col-labels" id="ktColLabelsTop"></div>
+          <div class="board-row-wrap">
+            <div style="display:flex;flex-direction:column;justify-content:space-around;padding-right:6px" id="ktRowLabelsL"></div>
+            <div id="knightBoard"></div>
+            <div style="display:flex;flex-direction:column;justify-content:space-around;padding-left:6px" id="ktRowLabelsR"></div>
+          </div>
+          <div class="col-labels" id="ktColLabelsBot"></div>
+        </div>
+        <div class="info-bar" id="ktInfoBar" style="margin-top:14px">
+          <span class="kt-id" id="ktInfoId">—</span>
+          <span class="squares-val" id="ktInfoSeq">—</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Queen SVG symbol -->
+<svg style="display:none">
+  <symbol id="Q" viewBox="0 0 100 100">
+    <circle cx="50" cy="16" r="9"/>
+    <circle cx="14" cy="30" r="7"/>
+    <circle cx="86" cy="30" r="7"/>
+    <polygon points="50,85 8,38 22,38 36,66 50,30 64,66 78,38 92,38"/>
+    <rect x="10" y="85" width="80" height="9" rx="4"/>
+  </symbol>
+  <!-- Knight piece (simplified SVG horse-head) -->
+  <symbol id="KN" viewBox="0 0 100 100">
+    <path d="M30,85 L30,70 Q25,60 28,50 Q20,45 22,35 Q30,20 45,18 Q50,10 60,12
+             Q75,15 78,28 Q80,38 72,48 Q78,55 75,65 L70,85 Z"
+          fill="currentColor"/>
+    <circle cx="57" cy="28" r="4" fill="#fff" opacity="0.7"/>
+  </symbol>
+</svg>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  SHARED STATE
+// ══════════════════════════════════════════════════════════════════
+
+let currentMode = 'queens'; // 'queens' | 'knight'
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.getElementById('tabQueens').classList.toggle('active', mode === 'queens');
+  document.getElementById('tabKnight').classList.toggle('active', mode === 'knight');
+  document.getElementById('queensSidebar').style.display = mode === 'queens' ? '' : 'none';
+  document.getElementById('knightSidebar').style.display = mode === 'knight' ? '' : 'none';
+  document.getElementById('queensView').style.display    = mode === 'queens' ? '' : 'none';
+  document.getElementById('knightView').style.display    = mode === 'knight' ? '' : 'none';
+  document.getElementById('mainArea').classList.toggle('knight-mode', mode === 'knight');
+}
+
+function fmtNum(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1)+'k';
+  return String(n);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  N-QUEENS
+// ══════════════════════════════════════════════════════════════════
+
+let allSolutions = [], filtered = [], currentIdx = 0;
+let qRows = 8, qCols = 8;
+
+const QSQ = () => {
+  const max = Math.min(window.innerWidth - 340, window.innerHeight - 220);
+  return Math.max(30, Math.min(72, Math.floor(max / qCols)));
+};
+
+async function loadQueenData() {
+  try {
+    const resp = await fetch('solutions.json');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    qRows = data.rows; qCols = data.cols;
+    allSolutions = data.solutions;
+    filtered = allSolutions;
+    document.getElementById('st-sol').textContent   = data.totalSolutions;
+    document.getElementById('st-q').textContent     = data.cols;
+    document.getElementById('st-time').textContent  = data.timeMs;
+    document.getElementById('st-calls').textContent = fmtNum(data.recursiveCalls);
+    buildBoard(); buildList(); showSolution(0);
+    document.getElementById('loadBox').style.display       = 'none';
+    document.getElementById('boardContainer').style.display = '';
+    document.getElementById('queensSidebar').style.display  = '';
+  } catch(e) {
+    console.warn('solutions.json not found:', e.message);
+  }
+}
+
+function buildBoard() {
+  const sz = QSQ(), board = document.getElementById('board');
+  board.innerHTML = '';
+  board.style.gridTemplateColumns = `repeat(${qCols}, ${sz}px)`;
+  board.style.gridTemplateRows    = `repeat(${qRows}, ${sz}px)`;
+  ['colLabelsTop','colLabelsBot'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    for (let c = 0; c < qCols; c++) {
+      const d = document.createElement('div');
+      d.className = 'col-lbl'; d.style.width = sz+'px';
+      d.textContent = String.fromCharCode(97+c); el.appendChild(d);
+    }
+  });
+  ['rowLabelsL','rowLabelsR'].forEach(id => {
+    const el = document.getElementById(id); el.innerHTML = '';
+    for (let r = 0; r < qRows; r++) {
+      const d = document.createElement('div');
+      d.className = 'row-lbl'; d.style.height = sz+'px'; d.style.width = '20px';
+      d.textContent = qRows - r; el.appendChild(d);
+    }
+  });
+  for (let r = 0; r < qRows; r++) {
+    for (let c = 0; c < qCols; c++) {
+      const sq = document.createElement('div');
+      sq.className = 'sq ' + ((r+c)%2===0 ? 'light' : 'dark');
+      sq.dataset.row = r; sq.dataset.col = c;
+      sq.style.width = sq.style.height = sz+'px';
+      board.appendChild(sq);
+    }
+  }
+}
+
+function drawSolution(sol) {
+  const showAtk = document.getElementById('atkToggle').checked;
+  const attacked = new Set();
+  if (showAtk) {
+    sol.queens.forEach((qRow, qCol) => {
+      for (let r = 0; r < qRows; r++) for (let c = 0; c < qCols; c++) {
+        if (r===qRow && c===qCol) continue;
+        if (r===qRow || c===qCol || Math.abs(r-qRow)===Math.abs(c-qCol))
+          attacked.add(r*qCols+c);
+      }
+    });
+  }
+  document.querySelectorAll('#board .sq').forEach(sq => {
+    const r = +sq.dataset.row, c = +sq.dataset.col;
+    sq.innerHTML = ''; sq.classList.remove('queen-sq','atk');
+    if (sol.queens[c] === r) {
+      sq.classList.add('queen-sq');
+      const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('viewBox','0 0 100 100');
+      svg.classList.add('queen'); svg.style.color = '#1a0d00';
+      svg.innerHTML = '<use href="#Q"/>'; sq.appendChild(svg);
+    } else if (showAtk && attacked.has(r*qCols+c)) {
+      sq.classList.add('atk');
+    }
+  });
+}
+
+function showSolution(idx) {
+  if (!filtered.length) return;
+  currentIdx = Math.max(0, Math.min(idx, filtered.length-1));
+  const sol = filtered[currentIdx];
+  drawSolution(sol);
+  document.getElementById('infoId').textContent = `Solution ${sol.id} / ${allSolutions.length}`;
+  document.getElementById('infoSq').textContent = sol.squares.join('  ');
+  document.querySelectorAll('.sol-item').forEach(el =>
+    el.classList.toggle('active', +el.dataset.solId === sol.id));
+  const active = document.querySelector('.sol-item.active');
+  if (active) active.scrollIntoView({block:'nearest'});
+  document.getElementById('prevBtn').disabled = currentIdx===0;
+  document.getElementById('nextBtn').disabled = currentIdx===filtered.length-1;
+}
+
+function buildList() {
+  const list = document.getElementById('solList'); list.innerHTML = '';
+  filtered.forEach((sol,i) => {
+    const el = document.createElement('div');
+    el.className = 'sol-item'; el.dataset.solId = sol.id; el.dataset.idx = i;
+    el.innerHTML = `<span class="sol-num">#${sol.id}</span>
+                    <span class="sol-squares">${sol.squares.join(' ')}</span>`;
+    el.addEventListener('click', () => showSolution(i));
+    list.appendChild(el);
+  });
+}
+
+function filterList() {
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  filtered = q ? allSolutions.filter(s => s.squares.join(' ').toLowerCase().includes(q)) : allSolutions;
+  buildList(); showSolution(0);
+}
+
+function navigate(dir) { showSolution(currentIdx+dir); }
+function redraw() { if (filtered.length) drawSolution(filtered[currentIdx]); }
+
+// ══════════════════════════════════════════════════════════════════
+//  KNIGHT'S TOUR
+// ══════════════════════════════════════════════════════════════════
+
+let allTours = [], filteredTours = [], ktCurrentIdx = 0;
+let ktRows = 8, ktCols = 8;
+
+// Animation state
+let animFrame = null;   // requestAnimationFrame id
+let animMove  = 1;      // current move being displayed (1-based)
+let animTotal = 0;      // total moves in current tour
+let animPlaying = false;
+
+const KTSQ = () => {
+  const max = Math.min(window.innerWidth - 340, window.innerHeight - 260);
+  return Math.max(30, Math.min(72, Math.floor(max / ktCols)));
+};
+
+async function loadKnightData() {
+  try {
+    const resp = await fetch('knight_tour.json');
+    if (!resp.ok) throw new Error('HTTP '+resp.status);
+    const data = await resp.json();
+    ktRows = data.rows; ktCols = data.cols;
+    allTours = data.tours;
+    filteredTours = allTours;
+
+    const nClosed = allTours.filter(t => t.closed).length;
+    document.getElementById('kt-total').textContent  = data.totalTours;
+    document.getElementById('kt-closed').textContent = nClosed;
+    document.getElementById('kt-time').textContent   = data.timeMs;
+    document.getElementById('kt-calls').textContent  = fmtNum(data.recursiveCalls);
+
+    buildKnightBoard();
+    buildKnightList();
+    showTour(0);
+
+    document.getElementById('ktLoadBox').style.display       = 'none';
+    document.getElementById('ktBoardContainer').style.display = '';
+    document.getElementById('knightSidebar').style.display    = '';
+  } catch(e) {
+    console.warn('knight_tour.json not found:', e.message);
+  }
+}
+
+function buildKnightBoard() {
+  const sz = KTSQ();
+  const board = document.getElementById('knightBoard');
+  board.innerHTML = '';
+  board.style.gridTemplateColumns = `repeat(${ktCols}, ${sz}px)`;
+  board.style.gridTemplateRows    = `repeat(${ktRows}, ${sz}px)`;
+
+  ['ktColLabelsTop','ktColLabelsBot'].forEach(id => {
+    const el = document.getElementById(id); el.innerHTML = '';
+    for (let c = 0; c < ktCols; c++) {
+      const d = document.createElement('div');
+      d.className = 'col-lbl'; d.style.width = sz+'px';
+      d.textContent = String.fromCharCode(97+c); el.appendChild(d);
+    }
+  });
+  ['ktRowLabelsL','ktRowLabelsR'].forEach(id => {
+    const el = document.getElementById(id); el.innerHTML = '';
+    for (let r = 0; r < ktRows; r++) {
+      const d = document.createElement('div');
+      d.className = 'row-lbl'; d.style.height = sz+'px'; d.style.width = '20px';
+      d.textContent = ktRows-r; el.appendChild(d);
+    }
+  });
+
+  for (let r = 0; r < ktRows; r++) {
+    for (let c = 0; c < ktCols; c++) {
+      const sq = document.createElement('div');
+      sq.className = 'sq ' + ((r+c)%2===0 ? 'light' : 'dark');
+      sq.dataset.row = r; sq.dataset.col = c;
+      sq.style.width = sq.style.height = sz+'px';
+      board.appendChild(sq);
+    }
+  }
+}
+
+// Draw the board up to move `upToMove` (1-based)
+function drawKnightUpTo(tour, upToMove) {
+  if (!tour) return;
+  const showNums = document.getElementById('showNums').checked;
+  const sz = KTSQ();
+  const fontSize = Math.max(8, Math.floor(sz * 0.28));
+
+  // Build reverse lookup: moveNum -> {r, c}
+  const movePos = new Array(ktRows * ktCols + 1);
+  for (let r = 0; r < ktRows; r++)
+    for (let c = 0; c < ktCols; c++)
+      movePos[tour.board[r * ktCols + c]] = {r, c}; // board is flat array
+
+  const startR = ktRows - 1 - (parseInt(tour.startSquare[1]) - 1);
+  // Actually startSquare is like "e4": col=e=4, row = ktRows - 4
+  const startCol = tour.startSquare.charCodeAt(0) - 97;
+  const startRow = ktRows - parseInt(tour.startSquare.slice(1));
+
+  document.querySelectorAll('#knightBoard .sq').forEach(sq => {
+    const r = +sq.dataset.row, c = +sq.dataset.col;
+    sq.innerHTML = '';
+    sq.classList.remove('kt-visited','kt-start','kt-current','kt-next');
+
+    // Get move number for this cell from flat board array
+    const mv = tour.board[r * ktCols + c];
+
+    if (r === startRow && c === startCol) sq.classList.add('kt-start');
+
+    if (mv <= upToMove) {
+      if (mv < upToMove) sq.classList.add('kt-visited');
+      if (mv === upToMove) sq.classList.add('kt-current');
+
+      if (showNums) {
+        const span = document.createElement('span');
+        span.className = 'kt-num';
+        span.style.fontSize = fontSize + 'px';
+        span.style.opacity  = mv === upToMove ? '1' : '0.55';
+        span.textContent = mv;
+        sq.appendChild(span);
+      }
+
+      // Draw knight piece on current square
+      if (mv === upToMove) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('viewBox','0 0 100 100');
+        svg.classList.add('knight-piece');
+        svg.style.color = '#b08aff';
+        svg.innerHTML = '<use href="#KN"/>';
+        sq.appendChild(svg);
+      }
+    }
+  });
+
+  // Update step indicator
+  document.getElementById('animStep').textContent =
+    `Move ${upToMove} / ${ktRows * ktCols}`;
+}
+
+function showTour(idx) {
+  animStop();
+  if (!filteredTours.length) return;
+  ktCurrentIdx = Math.max(0, Math.min(idx, filteredTours.length-1));
+  const tour = filteredTours[ktCurrentIdx];
+  animMove = ktRows * ktCols; // show full tour by default
+  animTotal = ktRows * ktCols;
+
+  drawKnightUpTo(tour, animMove);
+
+  // Info bar
+  const badge = tour.closed
+    ? '<span class="tour-badge closed">closed</span>'
+    : '<span class="tour-badge open">open</span>';
+  document.getElementById('ktInfoId').innerHTML =
+    `Tour ${tour.id} / ${allTours.length} — start: ${tour.startSquare} ${badge}`;
+  document.getElementById('ktInfoSeq').textContent =
+    tour.sequence.slice(0,20).join(' → ') + (tour.sequence.length > 20 ? ' …' : '');
+
+  // Highlight list
+  document.querySelectorAll('.sol-item.knight-item').forEach(el =>
+    el.classList.toggle('active', +el.dataset.solId === tour.id));
+  const active = document.querySelector('.sol-item.knight-item.active');
+  if (active) active.scrollIntoView({block:'nearest'});
+
+  document.getElementById('ktPrevBtn').disabled = ktCurrentIdx === 0;
+  document.getElementById('ktNextBtn').disabled = ktCurrentIdx === filteredTours.length-1;
+}
+
+function buildKnightList() {
+  const list = document.getElementById('ktList'); list.innerHTML = '';
+  filteredTours.forEach((tour, i) => {
+    const el = document.createElement('div');
+    el.className = 'sol-item knight-item';
+    el.dataset.solId = tour.id; el.dataset.idx = i;
+    const badge = tour.closed
+      ? '<span class="tour-badge closed">C</span>'
+      : '<span class="tour-badge open">O</span>';
+    el.innerHTML = `<span class="sol-num knight">#${tour.id}</span>
+                    ${badge}
+                    <span class="sol-squares">start: ${tour.startSquare}</span>`;
+    el.addEventListener('click', () => showTour(i));
+    list.appendChild(el);
+  });
+}
+
+function filterKnightList() {
+  const q = document.getElementById('ktSearchBox').value.trim().toLowerCase();
+  filteredTours = q
+    ? allTours.filter(t => t.startSquare.toLowerCase().includes(q)
+        || (t.closed ? 'closed' : 'open').includes(q))
+    : allTours;
+  buildKnightList(); showTour(0);
+}
+
+function navigateKnight(dir) { showTour(ktCurrentIdx+dir); }
+function redrawKnight() {
+  if (filteredTours.length) drawKnightUpTo(filteredTours[ktCurrentIdx], animMove);
+}
+
+// ── Animation ──────────────────────────────────────────────────────
+
+function animSpeed() {
+  const v = +document.getElementById('speedSlider').value; // 1-10
+  return Math.round(1200 / v); // ms per move
+}
+
+function animStop() {
+  if (animFrame) { clearTimeout(animFrame); animFrame = null; }
+  animPlaying = false;
+  document.getElementById('animPlayBtn').disabled  = false;
+  document.getElementById('animPauseBtn').disabled = true;
+}
+
+function animPlay() {
+  if (animPlaying) return;
+  const tour = filteredTours[ktCurrentIdx];
+  if (!tour) return;
+  // If already at end, restart from beginning
+  if (animMove >= ktRows * ktCols) {
+    animMove = 1;
+    drawKnightUpTo(tour, animMove);
+  }
+  animPlaying = true;
+  document.getElementById('animPlayBtn').disabled  = true;
+  document.getElementById('animPauseBtn').disabled = false;
+  animTick();
+}
+
+function animTick() {
+  if (!animPlaying) return;
+  const tour = filteredTours[ktCurrentIdx];
+  if (!tour) return;
+  animMove++;
+  drawKnightUpTo(tour, animMove);
+  if (animMove >= ktRows * ktCols) {
+    animStop();
+    return;
+  }
+  animFrame = setTimeout(animTick, animSpeed());
+}
+
+function animPause() { animStop(); }
+
+function animReset() {
+  animStop();
+  animMove = 1;
+  const tour = filteredTours[ktCurrentIdx];
+  if (tour) drawKnightUpTo(tour, animMove);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  KEYBOARD NAVIGATION
+// ══════════════════════════════════════════════════════════════════
+
+document.addEventListener('keydown', e => {
+  const dir = (e.key==='ArrowLeft'||e.key==='ArrowUp') ? -1
+            : (e.key==='ArrowRight'||e.key==='ArrowDown') ? +1 : 0;
+  if (!dir) return;
+  if (currentMode === 'queens') navigate(dir);
+  else navigateKnight(dir);
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  RESIZE
+// ══════════════════════════════════════════════════════════════════
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (allSolutions.length) { buildBoard(); redraw(); }
+    if (allTours.length)     { buildKnightBoard(); redrawKnight(); }
+  }, 150);
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════════════════
+
+loadQueenData();
+loadKnightData();
+</script>
+</body>
+</html>
